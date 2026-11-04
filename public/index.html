@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FruitFly++ — a fruit fly writes SQL++</title>
+<style>
+  :root { --bg:#07090f; --panel:#0d1117; --line:#1c2430; --fg:#c9d4e3; --dim:#5c6b80;
+          --kw:#22d3ee; --id:#f472b6; --gold:#fbbf24; --orange:#fb923c; }
+  * { box-sizing: border-box; }
+  body { margin:0; height:100vh; display:flex; background:var(--bg); color:var(--fg);
+         font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow:hidden; }
+  #stage { flex:1; min-width:0; position:relative; }
+  canvas { display:block; }
+  #overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+             background:rgba(4,6,10,.72); z-index:5; }
+  #overlay button { font:inherit; font-size:18px; padding:14px 26px; cursor:pointer;
+                    color:var(--bg); background:var(--kw); border:0; border-radius:8px; }
+  .intro { display:flex; flex-direction:column; align-items:center; width:100%; min-height:100%; padding:7vh 24px 0; }
+  .intro h2 { font-size:38px; margin:0 0 18px; letter-spacing:.06em; color:var(--fg); }
+  .intro p { color:#a4b1c3; max-width:52ch; font-size:18px; line-height:1.65; text-align:center; }
+  .intro .intro-lead { color:var(--fg); max-width:30ch; margin:10px 0 14px;
+                       font-size:clamp(24px, 2.3vw, 32px); line-height:1.4; }
+  .intro strong { color:var(--orange); }
+  .intro .sample-name { font-size:1.12em; }
+  .intro .important-note { border:1px solid var(--orange); border-radius:8px;
+                           background:rgba(251,146,60,.08); color:var(--fg);
+                           padding:12px 18px; margin:18px 0 24px; font-size:19px; }
+  .intro button { margin-top:auto; margin-bottom:7vh; }
+  #brain-widget { position:absolute; left:16px; bottom:16px; z-index:4;
+                  width:min(378px, calc(100% - 32px)); max-height:calc(100% - 32px);
+                  overflow-y:auto; border-radius:10px; background:rgba(7,9,15,.88); }
+  #brain-widget .badge { margin-bottom:0; }
+  #piplabel { font-size:10px; color:var(--dim); letter-spacing:.05em; margin:2px 0 6px; }
+  #pip { width:100%; aspect-ratio:1; margin:0 0 6px; border:1px solid var(--line);
+         border-radius:10px; overflow:hidden; background:rgba(7,9,15,.35); }
+  #pipviews { display:flex; flex-wrap:wrap; gap:4px; margin:0 0 12px; }
+  #pipviews button { font:inherit; font-size:10px; padding:2px 8px; border-radius:12px;
+                     cursor:pointer; background:transparent; border:1px solid var(--line); color:var(--dim); }
+  #pipviews button:hover { color:var(--fg); border-color:var(--dim); }
+  #pipviews button.on { color:var(--bg); background:var(--kw); border-color:var(--kw); }
+  #overlay { overflow-y:auto; }
+  #panel { width:430px; min-width:430px; height:100vh; display:flex; flex-direction:column;
+           overflow:hidden; background:var(--panel);
+           border-left:1px solid var(--line); padding:16px 18px 28px; }
+  #panel-content { flex:1; min-height:0; overflow-y:auto; padding-right:3px; }
+  h1 { font-size:17px; margin:0 0 2px; letter-spacing:.04em; }
+  .sub { color:var(--dim); font-size:12px; margin-bottom:12px; }
+  #status { font-size:12px; color:var(--gold); min-height:18px; margin-bottom:8px; }
+  #sql { white-space:pre-wrap; word-break:break-word; background:#090d14; border:1px solid var(--line);
+         border-radius:8px; padding:12px; min-height:110px; font-size:13px; }
+  #sql .kw { color:var(--kw); font-weight:700; }
+  #sql .id { color:var(--id); }
+  #sql .cursor { display:inline-block; width:8px; height:15px; background:var(--gold);
+                 vertical-align:-2px; animation:blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--dim);
+       margin:18px 0 6px; }
+  table { border-collapse:collapse; width:100%; font-size:12px; }
+  th, td { border:1px solid var(--line); padding:4px 7px; text-align:left; max-width:170px;
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  th { color:var(--dim); font-weight:600; }
+  #meta { color:var(--dim); font-size:12px; margin-top:6px; }
+  .foot { flex-shrink:0; margin-top:12px; color:var(--dim); font-size:10px; line-height:1.5;
+          border-top:1px solid var(--line); padding-top:10px; text-align:right; }
+  .foot a { color:var(--dim); }
+  .foot a:hover { color:var(--fg); }
+  .acknowledgements { margin-top:8px; }
+  .created-by { margin-top:8px; font-size:14px; font-weight:600; color:var(--orange); }
+  .foot .created-by a { color:inherit; }
+  #stop { margin-top:10px; background:transparent; color:var(--dim); border:1px solid var(--line);
+          border-radius:6px; font:inherit; font-size:12px; padding:6px 12px; cursor:pointer; }
+  #controls { margin:6px 0 10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+  .chip, .mini { font:inherit; font-size:11px; padding:4px 10px; border-radius:20px; cursor:pointer;
+                 background:transparent; border:1px solid var(--line); color:var(--dim); }
+  .chip:hover, .mini:hover { color:var(--fg); border-color:var(--dim); }
+  .chip.on { color:var(--bg); background:var(--kw); border-color:var(--kw); }
+  .row { display:flex; align-items:center; gap:6px; }
+  .row label { font-size:11px; color:var(--dim); display:flex; align-items:center; gap:6px; flex:1; }
+  .row input[type=range] { flex:1; accent-color: var(--kw); }
+  #stat { color:var(--dim); font-size:11px; margin-top:6px; min-height:14px; }
+  .badge { border:1px solid var(--gold); background:rgba(251,191,36,.07); color:var(--gold);
+           border-radius:8px; padding:8px 10px; font-size:11px; line-height:1.5; margin-bottom:10px; }
+  .badge b { color:var(--fg); letter-spacing:.05em; }
+  .brain-tools { border:1px solid var(--line); border-radius:8px; padding:10px; margin:12px 0; }
+  .brain-tools h2 { margin:0 0 8px; }
+  .brain-tools .tool-row { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:8px 0; }
+  .brain-tools label, .brain-tools p { font-size:11px; }
+  .brain-tools p { color:var(--dim); margin:6px 0; }
+  .brain-tools input { accent-color:var(--orange); }
+  .brain-tools button { touch-action:none; }
+  .brain-tools button[aria-pressed=true] { color:var(--orange); border-color:var(--orange); }
+  .brain-tools button:disabled { opacity:.4; cursor:default; }
+  #neuron-detail, #brain-feedback { font-size:11px; line-height:1.5; }
+  #brain-feedback { color:var(--orange); min-height:17px; margin-top:6px; }
+  #stimulate-neuron[aria-pressed=true] { background:rgba(251,146,60,.18); }
+  #pip canvas { touch-action:none; }
+  :focus-visible { outline:2px solid var(--orange); outline-offset:3px; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "/vendor/three.module.js" } }
+</script>
+</head>
+<body>
+  <div id="stage">
+    <div id="overlay">
+      <div class="intro">
+        <h2>FruitFly++</h2>
+        <p class="intro-lead">Based on the <strong>real brain of a fruit fly.</strong></p>
+        <p>The wiring comes from the <strong>real MaleCNS connectome</strong>:
+           <strong>19,463 neurons</strong> and <strong>340,922 anatomical connections</strong>.
+           A neural simulation follows this wiring as the fly watches the keyboard
+           light up. The SQL++ queries use templates and <strong>run for real</strong>
+           against <strong class="sample-name">Couchbase's <code>travel-sample</code></strong>.</p>
+        <p class="important-note"><strong>IMPORTANT:</strong> The fruitfly is not a DBA.</p>
+        <button id="start">▶ let the fly write SQL++</button>
+      </div>
+    </div>
+    <section id="brain-widget" aria-label="Connectome brain activity">
+    <div id="piplabel">MaleCNS v1.0 · visual-to-motor circuit · drag to rotate, scroll to zoom</div>
+    <div id="pip"></div>
+    <div class="badge"><b>REAL CONNECTOME · SIMULATED ACTIVITY</b> — 19,463 neurons,
+      340,922 anatomical connections. The trained connectome rate network responds
+      to illuminated keys and the colored target through a compound-eye model.
+      Red = firing above rest; blue = below rest.
+      SQL++ queries are templates executed against <code>travel-sample</code>.</div>
+    </section>
+  </div>
+  <div id="panel">
+    <div id="panel-content">
+    <h1>FruitFly++</h1>
+    <div class="sub">a real fruit fly brain writes SQL++</div>
+    <div id="status"></div>
+    <div id="controls">
+      <div class="chips">
+        <button class="chip" data-chart="0" title="fly picks a city">airports</button>
+        <button class="chip" data-chart="1">countries</button>
+        <button class="chip" data-chart="2" title="fly picks a departure airport">routes</button>
+        <button class="chip" data-chart="3">weekday</button>
+        <button class="chip" data-chart="4" title="fly picks a city + activity">landmarks</button>
+      </div>
+      <div class="row">
+        <label>tempo <input id="bpm" type="range" min="250" max="1000" step="50" value="550"></label>
+        <button id="skip" class="mini" title="next chart">skip ›</button>
+        <button id="sound" class="mini">sound on</button>
+      </div>
+      <div id="stat"></div>
+    </div>
+    <div id="sql"><span class="cursor"></span></div>
+    <button id="stop">pause the fly</button>
+    <section class="brain-tools" aria-label="Interactive brain experiments">
+      <h2>Explore the brain</h2>
+      <div class="tool-row">
+        <label><input id="target-enabled" type="checkbox" checked> colored target</label>
+        <button class="mini" data-target-color="red" aria-pressed="true">red</button>
+        <button class="mini" data-target-color="blue" aria-pressed="false">blue</button>
+      </div>
+      <p>Drag the target within the fly's view and watch the brain respond.</p>
+      <div class="tool-row">
+        <button id="cover-left" class="mini" aria-pressed="false">cover left eye</button>
+        <button id="cover-right" class="mini" aria-pressed="false">cover right eye</button>
+        <button id="reset-brain" class="mini">reset</button>
+      </div>
+      <p>Left and right are the fly's own eyes.</p>
+      <div id="neuron-detail">Click a neuron in either brain view to select it.</div>
+      <div class="tool-row">
+        <button id="stimulate-neuron" class="mini" aria-pressed="false" disabled>hold to stimulate</button>
+        <label>strength <input id="stimulus-strength" type="range" min="0.25" max="1.5" step="0.25" value="0.75" aria-label="Neuron stimulation strength"></label>
+      </div>
+      <p>You can also hold a neuron directly. Release to stop stimulation.</p>
+      <div id="brain-feedback" role="status" aria-live="polite">Start the demo to try the experiments.</div>
+    </section>
+    <h2>results</h2>
+    <div id="results"><div class="sub">—</div></div>
+    <div id="meta"></div>
+    </div>
+    <footer class="foot">
+      Connectome: MaleCNS v1.0, FlyEM (HHMI Janelia), Univ. of Cambridge, MRC LMB &amp;
+      Google Research — <span>CC BY 4.0</span> (male-cns.janelia.org).
+      Queries are template
+      charts with live-sampled parameters, executed against <code>travel-sample</code>.
+      Colors show model firing changes, not recordings from a living fly.
+      Some neuron positions are inherited or estimated in the source dataset.
+      <div class="acknowledgements">Acknowledgements:<br>
+        <a href="https://github.com/jackie-0110/Fly-Saber" target="_blank" rel="noopener">Fly-Saber</a> ·
+        <a href="https://sketchfab.com/3d-models/drosophila-adult-fruit-fly-ct-scan-ad29b897bd2b4e27bb04ab9d31baa117#download" target="_blank" rel="noopener">3D fly model (µCT scan)</a>
+      </div>
+      <div class="created-by">created by <a href="http://linkedin.com/in/deniswsrosa" target="_blank" rel="noopener">deniswsrosa</a></div>
+    </footer>
+  </div>
+  <script>
+    // early error surface: if anything below fails to load or run (WebGL, module
+    // fetch, syntax), say so in the panel instead of dying silently.
+    addEventListener('error', e => {
+      const s = document.querySelector('#status');
+      if (s && !s.dataset.err) {
+        s.dataset.err = '1';
+        s.textContent = 'error: ' + (e.message || 'failed to load script') +
+          ' — hard-refresh (Ctrl+Shift+R); if it persists, check the console';
+        s.style.color = '#f87171';
+      }
+    }, true);
+    addEventListener('unhandledrejection', e => {
+      const s = document.querySelector('#status');
+      if (s) { s.textContent = 'error: ' + e.reason; s.style.color = '#f87171'; }
+    });
+  </script>
+  <script type="module" src="/main.js?v=25"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "neuronCount": 19463,
+  "assetSha256": "72f31baeeebff827f0baf114fee8d7a5b63536152bd7cd75a735df394317d8b9",
+  "meshSha256": "822c9d6fb5446343c2d7eb393c990d472c3514cfe6a92d588f9f3cf26113f493",
+  "rotation": [
+    3.53,
+    0.119,
+    0
+  ],
+  "scale": 0.2948227885029065,
+  "center": [
+    -0.036452052990457694,
+    0.9060541878249003,
+    0.428799955193823
+  ],
+  "sourceCenter": [
+    -0.07509187327417077,
+    -0.15034205390174454,
+    0.6291021332937227
+  ],
+  "maxCenterZ": 0.45609733839149347,
+  "headNeuronCount": 19455,
+  "bodyNeuronCount": 8,
+  "excludedSuperclasses": [
+    "ascending_neuron"
+  ],
+  "clearance": 0.1
+}
