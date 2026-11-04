@@ -13,13 +13,17 @@ the client or committed to the repository. See [third-party notices](THIRD_PARTY
 
 ---
 
-## Demo video
+## See it in action
 
-[![Watch the FruitFly++ demo](docs/demo-preview.jpg)](docs/fruitflypp-demo.mp4)
+[![FruitFly++: illuminated keys, moving target and simulated neuron activity](docs/fruitflypp-demo.gif)](docs/fruitflypp-demo.mp4)
+
+An 8-second looping preview (1.9 MB) of the real connectome model responding to visual input.
+Click it to open the full video.
 
 [Watch or download the MP4](https://github.com/deniswsrosa/fruitflypp/blob/main/docs/fruitflypp-demo.mp4).
-The silent 1080p recording shows character-by-character typing, real Couchbase
-query results, front-leg grooming, target dragging, eye covers and neuron stimulation.
+The silent 4K recording starts with the brain already active and shows
+character-by-character typing, real Couchbase query results, front-leg grooming,
+target dragging, eye covers and neuron stimulation.
 The neural responses are simulated; query selection still uses templates.
 
 ## Quick start
